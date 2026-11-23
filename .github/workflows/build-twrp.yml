@@ -29,7 +29,7 @@ jobs:
       MANIFEST_URL: https://github.com/minimal-manifest-twrp/platform_manifest_twrp.git
       DEVICE_TREE_URL: https://github.com/naden01/infinix_X6532.git
       MANIFEST_BRANCH: ${{ inputs.manifest_branch }}
-      DEVICE_TREE_BRANCH: ${{ inputs.device_tree_branch }
+      DEVICE_TREE_BRANCH: ${{ inputs.device_tree_branch }}
     steps:
       - name: Checkout bring-up notes
         uses: actions/checkout@v4
@@ -37,7 +37,11 @@ jobs:
       - name: Install build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y bc bison build-essential ccache curl flex             g++-multilib gcc-multilib git git-lfs gnupg gperf imagemagick             lib32readline-dev lib32z1-dev libelf-dev liblz4-tool libncurses5-dev             libsdl1.2-dev libssl-dev libxml2-utils lzop pngcrush rsync schedtool             squashfs-tools unzip xz-utils zip zlib1g-dev python3
+          sudo apt-get install -y bc bison build-essential ccache curl flex \
+            g++-multilib gcc-multilib git git-lfs gnupg gperf imagemagick \
+            lib32readline-dev lib32z1-dev libelf-dev liblz4-tool libncurses5-dev \
+            libsdl1.2-dev libssl-dev libxml2-utils lzop pngcrush rsync schedtool \
+            squashfs-tools unzip xz-utils zip zlib1g-dev python3
 
       - name: Initialize Android build tree
         run: |
