@@ -75,6 +75,9 @@ jobs:
           set -o pipefail
           cd "$GITHUB_WORKSPACE/android"
           export ALLOW_MISSING_DEPENDENCIES=true
+          # vendorsetup.sh copies maintainer_avatar.png into this theme path
+          # while envsetup.sh sources the device vendorsetup script.
+          mkdir -p bootable/recovery/gui/theme/portrait_hdpi/images/Default/About
           source build/envsetup.sh
           lunch twrp_X6532-eng
           mka vendorbootimage 2>&1 | tee "$GITHUB_WORKSPACE/build.log"
