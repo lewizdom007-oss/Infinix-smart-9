@@ -58,7 +58,10 @@ jobs:
           cd "$GITHUB_WORKSPACE/android"
           mkdir -p device/infinix
           git clone --depth=1 -b "$DEVICE_TREE_BRANCH" "$DEVICE_TREE_URL" device/infinix/X6532
+          mv device/infinix/X6532/BoardConfig.mk device/infinix/X6532/BoardConfig.upstream.mk
+          cp -a "$GITHUB_WORKSPACE/device/infinix/X6532/." device/infinix/X6532/
           test -s device/infinix/X6532/BoardConfig.mk
+          test -s device/infinix/X6532/BoardConfig.upstream.mk
           test -s device/infinix/X6532/AndroidProducts.mk
           grep -q 'PRODUCT_NAME := twrp_X6532' device/infinix/X6532/twrp_X6532.mk
 
