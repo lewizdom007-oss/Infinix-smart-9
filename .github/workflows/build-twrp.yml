@@ -26,7 +26,7 @@ jobs:
     runs-on: ubuntu-22.04
     timeout-minutes: 360
     env:
-      MANIFEST_URL: https://github.com/minimal-manifest-twrp/platform_manifest_twrp.git
+      MANIFEST_URL: https://github.com/minimal-manifest-twrp/platform_manifest_twrp_aosp.git
       DEVICE_TREE_URL: https://github.com/naden01/infinix_X6532.git
       MANIFEST_BRANCH: ${{ inputs.manifest_branch }}
       DEVICE_TREE_BRANCH: ${{ inputs.device_tree_branch }}
