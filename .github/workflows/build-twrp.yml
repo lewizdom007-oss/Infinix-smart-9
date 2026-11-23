@@ -1,6 +1,10 @@
 name: Build TWRP - Infinix Smart 9 X6532
 
 on:
+  push:
+    paths:
+      - '.github/workflows/build-twrp.yml'
+      - 'device/infinix/X6532/**'
   workflow_dispatch:
     inputs:
       manifest_branch:
@@ -28,8 +32,8 @@ jobs:
     env:
       MANIFEST_URL: https://github.com/minimal-manifest-twrp/platform_manifest_twrp_aosp.git
       DEVICE_TREE_URL: https://github.com/naden01/infinix_X6532.git
-      MANIFEST_BRANCH: ${{ inputs.manifest_branch }}
-      DEVICE_TREE_BRANCH: ${{ inputs.device_tree_branch }}
+      MANIFEST_BRANCH: ${{ inputs.manifest_branch || 'twrp-12.1' }}
+      DEVICE_TREE_BRANCH: ${{ inputs.device_tree_branch || 'ofox' }}
     steps:
       - name: Checkout bring-up notes
         uses: actions/checkout@v4
