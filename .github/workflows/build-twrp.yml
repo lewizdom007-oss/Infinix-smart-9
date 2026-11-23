@@ -1,0 +1,98 @@
+name: Build TWRP - Infinix Smart 9 X6532
+
+on:
+  workflow_dispatch:
+    inputs:
+      manifest_branch:
+        description: TWRP manifest branch
+        required: true
+        default: twrp-12.1
+        type: string
+      device_tree_branch:
+        description: Reference X6532 device tree branch
+        required: true
+        default: ofox
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: twrp-x6532-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 360
+    env:
+      MANIFEST_URL: https://github.com/minimal-manifest-twrp/platform_manifest_twrp.git
+      DEVICE_TREE_URL: https://github.com/naden01/infinix_X6532.git
+      MANIFEST_BRANCH: ${{ inputs.manifest_branch }}
+      DEVICE_TREE_BRANCH: ${{ inputs.device_tree_branch }
+    steps:
+      - name: Checkout bring-up notes
+        uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bc bison build-essential ccache curl flex             g++-multilib gcc-multilib git git-lfs gnupg gperf imagemagick             lib32readline-dev lib32z1-dev libelf-dev liblz4-tool libncurses5-dev             libsdl1.2-dev libssl-dev libxml2-utils lzop pngcrush rsync schedtool             squashfs-tools unzip xz-utils zip zlib1g-dev python3
+
+      - name: Initialize Android build tree
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/android"
+          cd "$GITHUB_WORKSPACE/android"
+          curl -fsSL https://storage.googleapis.com/git-repo-downloads/repo -o repo
+          chmod +x repo
+          sudo install repo /usr/local/bin/repo
+          repo init -u "$MANIFEST_URL" -b "$MANIFEST_BRANCH" --depth=1
+          repo sync -c --no-clone-bundle --no-tags -j2
+
+      - name: Add X6532 device tree
+        run: |
+          cd "$GITHUB_WORKSPACE/android"
+          mkdir -p device/infinix
+          git clone --depth=1 -b "$DEVICE_TREE_BRANCH" "$DEVICE_TREE_URL" device/infinix/X6532
+          test -s device/infinix/X6532/BoardConfig.mk
+          test -s device/infinix/X6532/AndroidProducts.mk
+          grep -q 'PRODUCT_NAME := twrp_X6532' device/infinix/X6532/twrp_X6532.mk
+
+      - name: Build vendor_boot image
+        shell: bash
+        run: |
+          set -o pipefail
+          cd "$GITHUB_WORKSPACE/android"
+          export ALLOW_MISSING_DEPENDENCIES=true
+          source build/envsetup.sh
+          lunch twrp_X6532-eng
+          mka vendorbootimage 2>&1 | tee "$GITHUB_WORKSPACE/build.log"
+
+      - name: Check artifact layout and partition limit
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE/android"
+          IMAGE="$(find out/target/product/X6532 -maxdepth 2 -type f \( -name 'vendor_boot.img' -o -name 'vendorboot.img' \) -print -quit)"
+          test -n "$IMAGE"
+          SIZE="$(stat -c%s "$IMAGE")"
+          echo "Image: $IMAGE"
+          echo "Size: $SIZE bytes"
+          # Stock vendor_boot partition is 64 MiB. This is only a size guard,
+          # not proof that the generated v4 image is structurally correct.
+          test "$SIZE" -le 67108864
+          mkdir -p "$GITHUB_WORKSPACE/artifacts"
+          cp "$IMAGE" "$GITHUB_WORKSPACE/artifacts/vendor_boot.img"
+          sha256sum "$GITHUB_WORKSPACE/artifacts/vendor_boot.img" | tee "$GITHUB_WORKSPACE/artifacts/SHA256SUMS"
+
+      - name: Upload build artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: x6532-twrp-build
+          path: |
+            artifacts/
+            build.log
+          if-no-files-found: warn
+          retention-days: 14
