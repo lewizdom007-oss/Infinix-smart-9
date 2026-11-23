@@ -113,7 +113,7 @@ jobs:
           test -x "$UNPACK_BOOTIMG"
           TMP_UNPACK="$(mktemp -d)"
           "$UNPACK_BOOTIMG" --boot_img "$IMAGE" --out "$TMP_UNPACK"
-          test -s "$TMP_UNPACK/vendor_ramdisk"
+          find "$TMP_UNPACK" -maxdepth 1 -type f -name "vendor_ramdisk*" -size +0c | grep -q .
           mkdir -p "$GITHUB_WORKSPACE/artifacts"
           cp "$IMAGE" "$GITHUB_WORKSPACE/artifacts/vendor_boot.img"
           sha256sum "$GITHUB_WORKSPACE/artifacts/vendor_boot.img" | tee "$GITHUB_WORKSPACE/artifacts/SHA256SUMS"
