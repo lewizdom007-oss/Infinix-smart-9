@@ -1,4 +1,5 @@
 name: Build TWRP - Infinix Smart 9 X6532
+# Validate vendor_boot v4 header and unpacked ramdisk before publishing artifacts
 
 on:
   push:
