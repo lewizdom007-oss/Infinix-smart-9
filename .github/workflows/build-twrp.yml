@@ -36,7 +36,7 @@ jobs:
       DEVICE_TREE_BRANCH: ${{ inputs.device_tree_branch || 'ofox' }}
     steps:
       - name: Checkout bring-up notes
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Install build dependencies
         run: |
@@ -93,16 +93,35 @@ jobs:
           SIZE="$(stat -c%s "$IMAGE")"
           echo "Image: $IMAGE"
           echo "Size: $SIZE bytes"
-          # Stock vendor_boot partition is 64 MiB. This is only a size guard,
-          # not proof that the generated v4 image is structurally correct.
+          # X6532 stock vendor_boot is a v4 image with 4 KiB pages.
           test "$SIZE" -le 67108864
+          python3 - "$IMAGE" <<'PY'
+          import struct, sys
+          path = sys.argv[1]
+          with open(path, "rb") as f:
+              header = f.read(16)
+          if len(header) != 16 or header[:8] != b"VNDRBOOT":
+              raise SystemExit("Invalid vendor_boot magic")
+          version, page_size = struct.unpack_from("<II", header, 8)
+          print(f"vendor_boot header_version={version}, page_size={page_size}")
+          if version != 4:
+              raise SystemExit(f"Expected vendor_boot header v4, got v{version}")
+          if page_size != 4096:
+              raise SystemExit(f"Expected 4096-byte pages, got {page_size}")
+          PY
+          UNPACK_BOOTIMG="out/host/linux-x86/bin/unpack_bootimg"
+          test -x "$UNPACK_BOOTIMG"
+          TMP_UNPACK="$(mktemp -d)"
+          "$UNPACK_BOOTIMG" --boot_img "$IMAGE" --out "$TMP_UNPACK"
+          test -s "$TMP_UNPACK/vendor_ramdisk"
           mkdir -p "$GITHUB_WORKSPACE/artifacts"
           cp "$IMAGE" "$GITHUB_WORKSPACE/artifacts/vendor_boot.img"
           sha256sum "$GITHUB_WORKSPACE/artifacts/vendor_boot.img" | tee "$GITHUB_WORKSPACE/artifacts/SHA256SUMS"
+          echo "vendor_boot header and ramdisk unpack checks passed" | tee "$GITHUB_WORKSPACE/artifacts/VALIDATION.txt"
 
       - name: Upload build artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: x6532-twrp-build
           path: |
